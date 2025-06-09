@@ -1,27 +1,29 @@
-import type React from "react"
-import "@/app/globals.css"
-import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
+import type React from "react";
+import "@/app/globals.css";
+import { Inter } from "next/font/google";
+import { AppThemeProvider } from "@/context/themecontext";
+import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Gerador de QR Code",
-  description: "Gerador de QR Code a partir de JSON e dados de objeto",
-}
+  description: "Gere QR Codes de forma fácil e rápida a partir de textos, links ou dados estruturados em JSON.",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <AppThemeProvider>
           {children}
-        </ThemeProvider>
+          <Toaster />
+        </AppThemeProvider>
       </body>
     </html>
-  )
+  );
 }

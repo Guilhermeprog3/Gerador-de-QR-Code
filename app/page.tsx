@@ -1,423 +1,334 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import { Download, RefreshCw, Palette, Paintbrush } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useAppTheme } from "@/context/themecontext";
+import { toast } from "sonner";
 
-import { useState, useEffect } from "react"
-import { QRCodeSVG } from "qrcode.react"
-import { Download, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+const QrCodeCardContent = ({
+  idPrefix,
+  qrValue,
+  error,
+  size,
+  setSize,
+  qrCodeTitle,
+  setQrCodeTitle,
+  theme,
+}: {
+  idPrefix: string;
+  qrValue: string;
+  error: string | null;
+  size: number;
+  setSize: (size: number) => void;
+  qrCodeTitle: string;
+  setQrCodeTitle: (title: string) => void;
+  theme: any;
+}) => (
+  <>
+    <div className="bg-white p-4 rounded-lg shadow-md">
+      {qrValue && !error ? (
+        <QRCodeSVG
+          id={`${idPrefix}-svg`}
+          value={qrValue}
+          size={size}
+          level="H"
+          includeMargin={true}
+          fgColor={theme.qrCodeColor}
+        />
+      ) : (
+        <div
+          className="flex items-center justify-center border-2 border-dashed rounded-lg"
+          style={{ width: size, height: size, borderColor: theme.lightGray }}
+        >
+          <p className="text-center p-4" style={{ color: theme.textSecondary }}>
+            {error
+              ? "Corrija os dados para gerar o QR Code"
+              : "Aguardando dados válidos..."}
+          </p>
+        </div>
+      )}
+    </div>
 
-const hidro = {
-  primaryDark: "#01002C",
-  primaryLight: "#000481",
-  secondary: "#00bfa5",
-  white: "#fff",
-  lightGray: "#d3d3d3",
-  red: "#DB4437",
-  gradientStart: "#01002C",
-  gradientEnd: "#000481",
-  buttonBackground: "#00bfa5",
-  buttonText: "#fff",
-  textPrimary: "#fff",
-  textSecondary: "#d3d3d3",
-  navBarBackground: "#00036A",
-  iconColor: "#fff",
-  navBarIconColor: "#fff",
-  gradientstartlogin: "#01002C",
-  gradientendlogin: "#000481",
-}
+    <div className="w-full max-w-xs space-y-4">
+      <div>
+        <Label htmlFor="qrTitle" style={{ color: theme.textSecondary }} className="text-xs">
+          Título do Arquivo (Opcional)
+        </Label>
+        <Input
+          id="qrTitle"
+          value={qrCodeTitle}
+          onChange={(e) => setQrCodeTitle(e.target.value)}
+          placeholder="Ex: qrcode_sala_101"
+          style={{
+            background: theme.primaryLight,
+            color: theme.textPrimary,
+            borderColor: "rgba(255,255,255,0.2)",
+          }}
+          className="mt-1"
+        />
+      </div>
+
+      <Tabs defaultValue={size.toString()} className="w-full">
+        <TabsList className="grid grid-cols-3" style={{ background: theme.navBarBackground }}>
+          <TabsTrigger onClick={() => setSize(128)} value="128">
+            Pequeno
+          </TabsTrigger>
+          <TabsTrigger onClick={() => setSize(256)} value="256">
+            Médio
+          </TabsTrigger>
+          <TabsTrigger onClick={() => setSize(512)} value="512">
+            Grande
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </div>
+  </>
+);
+
 
 export default function QRCodeGenerator() {
-  const [jsonInput, setJsonInput] = useState('{\n  "exemplo": "Olá Mundo",\n  "teste": 123\n}')
-  const [qrValue, setQrValue] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [size, setSize] = useState(256)
+  const { theme, setTheme } = useAppTheme();
+  const [jsonInput, setJsonInput] = useState(
+    '{\n  "exemplo": "Olá Mundo",\n  "teste": 123\n}'
+  );
+  const [jsonQrValue, setJsonQrValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [size, setSize] = useState(256);
+  const [activeTab, setActiveTab] = useState("json");
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
-  const [tittle, setTittle] = useState("")
-  const [location, setLocation] = useState("")
-  const [objectQrValue, setObjectQrValue] = useState("")
+  const [title, setTitle] = useState("");
+  const [location, setLocation] = useState("");
+  const [objectQrValue, setObjectQrValue] = useState("");
+
+  const [qrCodeTitle, setQrCodeTitle] = useState("");
 
   useEffect(() => {
-    validateAndUpdateQR(jsonInput)
-  }, [jsonInput])
+    validateAndUpdateQR(jsonInput);
+  }, [jsonInput]);
 
   useEffect(() => {
-    if (tittle || location) {
-      const objectData = {
-        tittle,
-        location,
-      }
-      setObjectQrValue(JSON.stringify(objectData))
+    if (title || location) {
+      const objectData = { title, location };
+      setObjectQrValue(JSON.stringify(objectData));
+    } else {
+      setObjectQrValue("");
     }
-  }, [tittle, location])
+  }, [title, location]);
 
   const validateAndUpdateQR = (input: string) => {
-    try {
-      const parsedJson = JSON.parse(input)
-      const jsonString = JSON.stringify(parsedJson)
-      setQrValue(jsonString)
-      setError(null)
-    } catch (err) {
-      setError("JSON inválido. Verifique a sintaxe.")
+    if (!input.trim()) {
+      setError("O JSON não pode estar vazio.");
+      setJsonQrValue("");
+      return;
     }
-  }
+    try {
+      const parsedJson = JSON.parse(input);
+      const jsonString = JSON.stringify(parsedJson, null, 2);
+      setJsonQrValue(jsonString);
+      setError(null);
+    } catch (err) {
+      setError("JSON inválido. Verifique a sintaxe.");
+    }
+  };
 
   const handleDownload = (value: string, prefix = "qrcode") => {
-    const svg = document.getElementById(`${prefix}-svg`)
-    if (!svg) return
-
-    const svgData = new XMLSerializer().serializeToString(svg)
-    const canvas = document.createElement("canvas")
-    const ctx = canvas.getContext("2d")
-    const img = new Image()
-    img.crossOrigin = "anonymous"
-
-    img.onload = () => {
-      canvas.width = size
-      canvas.height = size
-      ctx?.drawImage(img, 0, 0)
-      const pngFile = canvas.toDataURL("image/png")
-
-      const downloadLink = document.createElement("a")
-      downloadLink.download = `${prefix}.png`
-      downloadLink.href = pngFile
-      downloadLink.click()
+    const svg = document.getElementById(`${prefix}-svg`);
+    if (!svg) {
+      toast.error("Erro ao encontrar o QR Code para download.");
+      return;
     }
 
-    img.src = "data:image/svg+xml;base64," + btoa(svgData)
-  }
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      toast.error("Não foi possível criar o canvas para download.");
+      return;
+    }
 
-  const handleRefresh = () => {
-    validateAndUpdateQR(jsonInput)
-  }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      canvas.width = size;
+      canvas.height = size;
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      
+      const sanitizedTitle = qrCodeTitle.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const fileName = sanitizedTitle || prefix;
+
+      downloadLink.download = `${fileName}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+      toast.success("Download do QR Code iniciado!");
+    };
+    img.onerror = () => {
+      toast.error("Falha ao carregar a imagem do QR Code.");
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(decodeURIComponent(encodeURIComponent(svgData)));
+  };
+
+  const ThemeSwitcherModal = () => (
+    <Dialog open={isThemeModalOpen} onOpenChange={setIsThemeModalOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" style={{ borderColor: theme.secondary, color: theme.secondary }}>
+          <Palette className="mr-2 h-4 w-4" />
+          Trocar Tema
+        </Button>
+      </DialogTrigger>
+      <DialogContent style={{ background: theme.primaryLight, borderColor: theme.secondary }}>
+        <DialogHeader>
+          <DialogTitle style={{ color: theme.textPrimary }}>Selecione um Tema</DialogTitle>
+          <DialogDescription style={{ color: theme.textSecondary }}>
+            Escolha uma aparência para a aplicação. A configuração do seu sistema é o padrão.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-1 gap-4 pt-4">
+            <Button variant="outline" size="lg" onClick={() => { setTheme("secondary"); setIsThemeModalOpen(false); }} style={{color: '#2e7d32'}}>
+                <Paintbrush className="mr-2 h-4 w-4"/> Padrão Claro (Verde)
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => { setTheme("tertiary"); setIsThemeModalOpen(false); }} style={{color: '#4caf50'}}>
+                <Paintbrush className="mr-2 h-4 w-4"/> Padrão Escuro (Verde)
+            </Button>
+            <Button variant="outline" size="lg" onClick={() => { setTheme("primary"); setIsThemeModalOpen(false); }} style={{color: '#00b09b'}}>
+                <Paintbrush className="mr-2 h-4 w-4"/> Bônus (Azul)
+            </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const cardStyle = {
+    background: theme.primaryDark,
+    borderColor: theme.navBarBackground,
+    color: theme.textPrimary,
+  };
+
+  const inputStyle = {
+    background: theme.primaryLight,
+    color: theme.textPrimary,
+    borderColor: "rgba(255,255,255,0.2)",
+  };
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen w-full transition-all duration-300"
       style={{
-        background: `linear-gradient(to bottom, ${hidro.gradientStart}, ${hidro.gradientEnd})`,
-        color: hidro.textPrimary,
+        background: `linear-gradient(to bottom, ${theme.gradientStart}, ${theme.gradientEnd})`,
+        color: theme.textPrimary,
       }}
     >
-      <Tabs defaultValue="json" className="container mx-auto py-10 px-4">
-        <h1 className="text-3xl font-bold text-center mb-8" style={{ color: hidro.white }}>
-          Gerador de QR Code
-        </h1>
+      <div className="container mx-auto px-4 py-8">
+        <header className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          <h1 className="text-3xl font-bold text-center" style={{ color: theme.textPrimary }}>
+            Gerador de QR Code
+          </h1>
+          <ThemeSwitcherModal />
+        </header>
 
-        <TabsList
-          className="grid w-full grid-cols-2 mb-8"
-          style={{
-            background: hidro.navBarBackground,
-          }}
-        >
-          <TabsTrigger
-            value="json"
-            style={
-              {
-                color: hidro.textPrimary,
-                "--tab-accent": hidro.secondary,
-              } as React.CSSProperties
-            }
-            className="data-[state=active]:bg-opacity-50 data-[state=active]:text-white"
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList
+            className="grid w-full grid-cols-2 mb-8"
+            style={{ background: theme.navBarBackground, color: theme.textPrimary }}
           >
-            QR Code a partir de JSON
-          </TabsTrigger>
-          <TabsTrigger
-            value="object"
-            style={
-              {
-                color: hidro.textPrimary,
-                "--tab-accent": hidro.secondary,
-              } as React.CSSProperties
-            }
-            className="data-[state=active]:bg-opacity-50 data-[state=active]:text-white"
-          >
-            QR Code de Objeto
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="json">QR Code a partir de JSON</TabsTrigger>
+            <TabsTrigger value="object">QR Code a partir de Objeto</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="json">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card
-              style={{
-                background: hidro.primaryDark,
-                borderColor: hidro.primaryLight,
-                color: hidro.textPrimary,
-              }}
-            >
-              <CardHeader>
-                <CardTitle style={{ color: hidro.white }}>Entrada JSON</CardTitle>
-                <CardDescription style={{ color: hidro.textSecondary }}>Digite ou cole seu JSON abaixo</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={jsonInput}
-                  onChange={(e) => setJsonInput(e.target.value)}
-                  className="min-h-[300px] font-mono"
-                  placeholder="Digite seu JSON aqui..."
-                  style={{
-                    background: hidro.primaryLight,
-                    color: hidro.white,
-                    borderColor: "rgba(255,255,255,0.1)",
-                  }}
-                />
-                {error && (
-                  <Alert
-                    variant="destructive"
-                    className="mt-4"
-                    style={{ background: "rgba(219, 68, 55, 0.2)", borderColor: hidro.red }}
-                  >
-                    <AlertTitle>Erro</AlertTitle>
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Button
-                  onClick={handleRefresh}
-                  className="w-full"
-                  style={{
-                    background: hidro.buttonBackground,
-                    color: hidro.buttonText,
-                  }}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Atualizar QR Code
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card
-              style={{
-                background: hidro.primaryDark,
-                borderColor: hidro.primaryLight,
-                color: hidro.textPrimary,
-              }}
-            >
-              <CardHeader>
-                <CardTitle style={{ color: hidro.white }}>QR Code Gerado</CardTitle>
-                <CardDescription style={{ color: hidro.textSecondary }}>
-                  Escaneie ou faça download do QR Code
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center">
-                <Tabs defaultValue="256" className="w-full mb-6">
-                  <TabsList className="grid grid-cols-3" style={{ background: hidro.navBarBackground }}>
-                    <TabsTrigger
-                      value="128"
-                      onClick={() => setSize(128)}
-                      style={{ color: hidro.textPrimary }}
-                      className="data-[state=active]:bg-opacity-50"
-                    >
-                      Pequeno
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="256"
-                      onClick={() => setSize(256)}
-                      style={{ color: hidro.textPrimary }}
-                      className="data-[state=active]:bg-opacity-50"
-                    >
-                      Médio
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="512"
-                      onClick={() => setSize(512)}
-                      style={{ color: hidro.textPrimary }}
-                      className="data-[state=active]:bg-opacity-50"
-                    >
-                      Grande
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="bg-white p-4 rounded-lg">
-                  {!error && qrValue ? (
-                    <QRCodeSVG
-                      id="qrcode-svg"
-                      value={qrValue}
-                      size={size}
-                      level="H"
-                      includeMargin={true}
-                      fgColor={hidro.primaryDark}
-                    />
-                  ) : (
-                    <div
-                      className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg"
-                      style={{ width: size, height: size }}
-                    >
-                      <p className="text-gray-500 text-center p-4">
-                        {error ? "Corrija o JSON para gerar o QR Code" : "Digite um JSON válido"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  onClick={() => handleDownload(qrValue)}
-                  className="w-full"
-                  disabled={!!error || !qrValue}
-                  style={{
-                    background: hidro.buttonBackground,
-                    color: hidro.buttonText,
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar QR Code
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="object">
-          <div className="rounded-lg p-8" style={{ background: hidro.primaryDark }}>
+          <TabsContent value="json">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card
-                style={{
-                  background: hidro.primaryLight,
-                  borderColor: "rgba(255,255,255,0.1)",
-                  color: hidro.textPrimary,
-                }}
-              >
+              <Card style={cardStyle}>
                 <CardHeader>
-                  <CardTitle style={{ color: hidro.white }}>Dados do Objeto</CardTitle>
-                  <CardDescription style={{ color: hidro.textSecondary }}>Preencha os campos abaixo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tittle" style={{ color: hidro.white }}>
-                        Título
-                      </Label>
-                      <Input
-                        id="tittle"
-                        value={tittle}
-                        onChange={(e) => setTittle(e.target.value)}
-                        placeholder="Digite o título do objeto"
-                        style={{
-                          background: "rgba(255,255,255,0.1)",
-                          borderColor: "rgba(255,255,255,0.2)",
-                          color: hidro.white,
-                        }}
-                        className="placeholder:text-gray-400"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="location" style={{ color: hidro.white }}>
-                        Localização
-                      </Label>
-                      <Input
-                        id="location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Digite a localização do objeto"
-                        style={{
-                          background: "rgba(255,255,255,0.1)",
-                          borderColor: "rgba(255,255,255,0.2)",
-                          color: hidro.white,
-                        }}
-                        className="placeholder:text-gray-400"
-                      />
-                    </div>
-
-                    <div className="p-4 rounded-md mt-4" style={{ background: "rgba(0,0,0,0.2)" }}>
-                      <p className="text-sm font-mono mb-2" style={{ color: hidro.textSecondary }}>
-                        JSON gerado:
-                      </p>
-                      <pre
-                        className="text-xs overflow-auto p-2 rounded border"
-                        style={{
-                          background: hidro.primaryDark,
-                          borderColor: "rgba(255,255,255,0.1)",
-                          color: hidro.secondary,
-                        }}
-                      >
-                        {objectQrValue || '{\n  "title": "",\n  "location": ""\n}'}
-                      </pre>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card
-                style={{
-                  background: hidro.primaryLight,
-                  borderColor: "rgba(255,255,255,0.1)",
-                  color: hidro.textPrimary,
-                }}
-              >
-                <CardHeader>
-                  <CardTitle style={{ color: hidro.white }}>QR Code do Objeto</CardTitle>
-                  <CardDescription style={{ color: hidro.textSecondary }}>
-                    Escaneie ou faça download do QR Code
+                  <CardTitle>Entrada JSON</CardTitle>
+                  <CardDescription style={{ color: theme.textSecondary }}>
+                    Digite ou cole seu JSON abaixo
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center">
-                  <Tabs defaultValue="256" className="w-full mb-6">
-                    <TabsList className="grid grid-cols-3" style={{ background: hidro.navBarBackground }}>
-                      <TabsTrigger
-                        value="128"
-                        onClick={() => setSize(128)}
-                        style={{ color: hidro.textPrimary }}
-                        className="data-[state=active]:bg-opacity-50"
-                      >
-                        Pequeno
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="256"
-                        onClick={() => setSize(256)}
-                        style={{ color: hidro.textPrimary }}
-                        className="data-[state=active]:bg-opacity-50"
-                      >
-                        Médio
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="512"
-                        onClick={() => setSize(512)}
-                        style={{ color: hidro.textPrimary }}
-                        className="data-[state=active]:bg-opacity-50"
-                      >
-                        Grande
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-
-                  <div className="bg-white p-4 rounded-lg">
-                    {objectQrValue ? (
-                      <QRCodeSVG
-                        id="object-svg"
-                        value={objectQrValue}
-                        size={size}
-                        level="H"
-                        includeMargin={true}
-                        fgColor={hidro.primaryDark}
-                      />
-                    ) : (
-                      <div
-                        className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg"
-                        style={{ width: size, height: size }}
-                      >
-                        <p className="text-gray-500 text-center p-4">Preencha os campos para gerar o QR Code</p>
-                      </div>
-                    )}
-                  </div>
+                <CardContent>
+                  <Textarea
+                    value={jsonInput}
+                    onChange={(e) => setJsonInput(e.target.value)}
+                    className="min-h-[300px] font-mono text-sm"
+                    placeholder="Digite seu JSON aqui..."
+                    style={inputStyle}
+                  />
+                  {error && (
+                    <Alert
+                      variant="destructive"
+                      className="mt-4"
+                      style={{ background: "rgba(219, 68, 55, 0.2)", borderColor: theme.red }}
+                    >
+                      <AlertTitle>Erro</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button
-                    onClick={() => handleDownload(objectQrValue, "object-qrcode")}
+                    onClick={() => validateAndUpdateQR(jsonInput)}
                     className="w-full"
-                    disabled={!objectQrValue}
-                    style={{
-                      background: hidro.buttonBackground,
-                      color: hidro.buttonText,
-                    }}
+                    style={{ background: theme.buttonBackground, color: theme.buttonText }}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Atualizar QR Code
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              <Card style={cardStyle}>
+                <CardHeader>
+                  <CardTitle>QR Code Gerado</CardTitle>
+                  <CardDescription style={{ color: theme.textSecondary }}>
+                    Escaneie ou faça o download
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center gap-4">
+                   <QrCodeCardContent 
+                     idPrefix="json-qrcode"
+                     qrValue={jsonQrValue}
+                     error={error}
+                     size={size}
+                     setSize={setSize}
+                     qrCodeTitle={qrCodeTitle}
+                     setQrCodeTitle={setQrCodeTitle}
+                     theme={theme}
+                   />
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    onClick={() => handleDownload(jsonQrValue, "json-qrcode")}
+                    className="w-full"
+                    disabled={!!error || !jsonQrValue}
+                    style={{ background: theme.buttonBackground, color: theme.buttonText }}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Baixar QR Code
@@ -425,9 +336,75 @@ export default function QRCodeGenerator() {
                 </CardFooter>
               </Card>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          <TabsContent value="object">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card style={cardStyle}>
+                    <CardHeader>
+                        <CardTitle>Dados do Objeto</CardTitle>
+                         <CardDescription style={{ color: theme.textSecondary }}>
+                            Preencha os campos para gerar um QR Code
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="title" style={{ color: theme.textPrimary }}>Título</Label>
+                            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Mesa de Escritório" style={inputStyle}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="location" style={{ color: theme.textPrimary }}>Localização</Label>
+                            <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Ex: Sala 101" style={inputStyle} />
+                        </div>
+                        <div className="p-4 rounded-md mt-4" style={{ background: theme.primaryLight, borderColor: theme.secondary }}>
+                            <p className="text-sm font-mono mb-2" style={{ color: theme.textSecondary }}>
+                                JSON Gerado:
+                            </p>
+                            <pre className="text-xs overflow-auto p-2 rounded" style={{
+                                background: theme.primaryDark,
+                                borderColor: theme.secondary,
+                                color: theme.secondary,
+                            }}>
+                                {JSON.stringify({ title, location }, null, 2)}
+                            </pre>
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card style={cardStyle}>
+                    <CardHeader>
+                        <CardTitle>QR Code do Objeto</CardTitle>
+                        <CardDescription style={{ color: theme.textSecondary }}>
+                            Escaneie ou faça o download
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col items-center justify-center gap-4">
+                      <QrCodeCardContent 
+                        idPrefix="object-qrcode"
+                        qrValue={objectQrValue}
+                        error={null}
+                        size={size}
+                        setSize={setSize}
+                        qrCodeTitle={qrCodeTitle}
+                        setQrCodeTitle={setQrCodeTitle}
+                        theme={theme}
+                      />
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            onClick={() => handleDownload(objectQrValue, "object-qrcode")}
+                            className="w-full"
+                            disabled={!objectQrValue}
+                            style={{ background: theme.buttonBackground, color: theme.buttonText }}
+                        >
+                            <Download className="mr-2 h-4 w-4" />
+                            Baixar QR Code
+                        </Button>
+                    </CardFooter>
+                 </Card>
+             </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
-  )
+  );
 }

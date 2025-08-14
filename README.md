@@ -97,4 +97,4 @@ Ele permite que os usuários criem QR Codes a partir de texto simples, links ou 
 
 👤 **Desenvolvedor:** Guilherme Silva Rios  
 🌐 [Portfólio](https://guilhermeriosdev.vercel.app)  
-💻 [GitHub](https://github.com/GuilhermeRiosDev)  
+💻 [GitHub](https://github.com/guilhermeprog3)  

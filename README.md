@@ -66,7 +66,7 @@ Ele permite que os usuários criem QR Codes a partir de texto simples, links ou 
 
 1. **Clone o repositório**
    ```bash
-   git clone https://github.com/seu-usuario/Gerador-de-QR-Code.git
+   git clone https://github.com/Guilhermeprog3/Gerador-de-QR-Code.git
    ```
 
 2. **Acesse o diretório do projeto**
